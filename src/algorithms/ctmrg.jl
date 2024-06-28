@@ -12,12 +12,13 @@ The maximal and minimal number of CTMRG iterations is set with `maxiter` and `mi
 Different levels of output information are printed depending on `verbosity` (0, 1 or 2).
 Regardless of the truncation scheme, the space can be kept fixed with `fixedspace`.
 """
-@kwdef struct CTMRG
-    trscheme::TruncationScheme = TensorKit.notrunc()
+@kwdef struct CTMRG{S}
     tol::Float64 = Defaults.ctmrg_tol
     maxiter::Int = Defaults.ctmrg_maxiter
     miniter::Int = Defaults.ctmrg_miniter
     verbosity::Int = 0
+    svdalg::S = FullSVD()
+    trscheme::TruncationScheme = TensorKit.notrunc()
     fixedspace::Bool = false
 end
 
@@ -39,6 +40,7 @@ function MPSKit.leading_boundary(envinit, state, alg::CTMRG)
 
     for i in 1:(alg.maxiter)
         env, ϵ = ctmrg_iter(state, env, alg)  # Grow and renormalize in all 4 directions
+
         conv_condition, normold, CSold, TSold, ϵ = ignore_derivatives() do
             # Compute convergence criteria and take max (TODO: How should we handle logging all of this?)
             Δϵ = abs((ϵold - ϵ) / ϵold)
@@ -146,8 +148,8 @@ function gauge_fix(envprev::CTMRGEnv{C,T}, envfinal::CTMRGEnv{C,T}) where {C,T}
 
         # Decompose and multiply
         Up, _, Vp = tsvd!(ρ_prev)
-        Uf, _, Vf = tsvd!(ρ_final)
         Qprev = Up * Vp
+        Uf, _, Vf = tsvd!(ρ_final)
         Qfinal = Uf * Vf
         σ = Qprev * Qfinal'
 
@@ -334,7 +336,7 @@ function left_move(state, env::CTMRGEnv{C,T}, alg::CTMRG) where {C,T}
                 alg.trscheme
             end
             @tensor QQ[-1 -2 -3; -4 -5 -6] := Q_sw[-1 -2 -3; 1 2 3] * Q_nw[1 2 3; -4 -5 -6]
-            U, S, V, ϵ_local = tsvd!(QQ; trunc=trscheme, alg=TensorKit.SVD())
+            U, S, V, ϵ_local = svdwrap(QQ, alg.svdalg; trunc=trscheme)
             ϵ = max(ϵ, ϵ_local / norm(S))
             # TODO: check if we can just normalize enlarged corners s.t. trunc behaves a bit better
 
