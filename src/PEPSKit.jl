@@ -5,7 +5,7 @@ using Base: @kwdef
 using Compat
 using Accessors
 using VectorInterface
-using TensorKit, KrylovKit, MPSKit, OptimKit
+using TensorKit, KrylovKit, MPSKit, OptimKit, TensorOperations
 using ChainRulesCore, Zygote
 
 include("utility/util.jl")
@@ -59,7 +59,7 @@ module Defaults
 end
 
 export CTMRG, CTMRGEnv
-export NLocalOperator, AnisotropicNNOperator, OnSite, NearestNeighbor
+export PEPSHamiltonian
 export expectation_value, costfun
 export leading_boundary
 export PEPSOptimize, GeomSum, ManualIter, LinSolve
